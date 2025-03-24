@@ -2,28 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Duck Runner Game</title>
     <style>
         body { 
             margin: 0; 
             overflow: hidden;
             font-family: Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: none;
         }
         #game-container {
             position: relative;
             width: 100%;
             height: 100vh;
-            height: calc(var(--vh, 1vh) * 100);
-            outline: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            user-select: none;
+            outline: none; /* Remove focus outline */
+            tabindex: "-1"; /* Make it focusable */
         }
         #score-display {
             position: absolute;
@@ -80,52 +72,6 @@
         }
         #pause-button {
             display: none; /* Hide the pause button */
-        }
-        /* Mobile touch controls */
-        #mobile-controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            z-index: 90;
-            display: none; /* Hidden by default, shown on mobile */
-            pointer-events: none;
-        }
-        .control-half {
-            position: absolute;
-            width: 50%;
-            height: 100%;
-            pointer-events: auto;
-        }
-        #jump-zone {
-            left: 0;
-        }
-        #duck-zone {
-            right: 0;
-        }
-        .control-indicator {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            pointer-events: none;
-            opacity: 0.7;
-        }
-        .control-indicator.active {
-            background-color: rgba(255, 255, 255, 0.5);
-            transform: translate(-50%, -50%) scale(1.2);
         }
         #start-screen {
             position: absolute;
@@ -277,23 +223,14 @@
         <button id="pause-button">Pause</button>
         <div id="difficulty-display">Difficulty: 1.0x</div>
         <div id="instructions">
-            <span class="keyboard-controls">SPACE/UP to jump • DOWN to duck • P to pause</span>
-            <span class="mobile-controls">TAP LEFT to jump • TAP RIGHT to duck</span>
+            Press SPACE or UP ARROW to jump<br>
+            Press DOWN ARROW to duck<br>
+            Press P to pause
         </div>
         <div id="score-display">Score: 0</div>
         
         <div id="countdown">3</div>
         <div id="ready-text">GET READY!</div>
-        
-        <!-- Mobile touch controls -->
-        <div id="mobile-controls">
-            <div id="jump-zone" class="control-half">
-                <div class="control-indicator">JUMP</div>
-            </div>
-            <div id="duck-zone" class="control-half">
-                <div class="control-indicator">DUCK</div>
-            </div>
-        </div>
         
         <div id="start-screen">
             <h1 id="start-title">Duck Runner</h1>
@@ -301,8 +238,7 @@
             <button id="start-button">Start Game</button>
             <div id="controls-info">
                 <p>Controls:</p>
-                <div class="keyboard-controls">SPACE or UP ARROW to jump | DOWN ARROW to duck | P to pause</div>
-                <div class="mobile-controls">Tap LEFT side to jump | Tap RIGHT side to duck</div>
+                <p>SPACE or UP ARROW to jump | DOWN ARROW to duck | P to pause</p>
             </div>
         </div>
         
@@ -325,40 +261,6 @@
     <script>
         // Wait for DOM content to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Fix mobile viewport height issue
-            function setVHVariable() {
-                const vh = window.innerHeight * 0.01;
-                document.documentElement.style.setProperty('--vh', `${vh}px`);
-            }
-            
-            // Set initially and on resize
-            setVHVariable();
-            window.addEventListener('resize', setVHVariable);
-            
-            // Detect if device is mobile
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                             window.innerWidth < 800;
-            
-            // Show appropriate control instructions
-            document.querySelectorAll('.keyboard-controls').forEach(el => {
-                el.style.display = isMobile ? 'none' : 'block';
-            });
-            document.querySelectorAll('.mobile-controls').forEach(el => {
-                el.style.display = isMobile ? 'block' : 'none';
-            });
-            
-            // Show mobile controls if on mobile
-            if (isMobile) {
-                document.getElementById('mobile-controls').style.display = 'block';
-                document.getElementById('instructions').style.fontSize = '14px';
-            }
-            
-            // Performance settings
-            const LOW_PERFORMANCE_MODE = isMobile;
-            const SHADOW_ENABLED = !LOW_PERFORMANCE_MODE;
-            const ANIMATION_FRAME_THROTTLE = LOW_PERFORMANCE_MODE ? 2 : 1; // Only render every X frames on low-end devices
-            let frameCount = 0;
-            
             // Three.js variables
             let scene, camera, renderer;
             let player, ground;
@@ -389,21 +291,21 @@
             let JUMP_DURATION = 500; // Faster jump duration
             
             // Difficulty scaling constants
-            const MAX_DIFFICULTY_SCORE = 250; // Score at which difficulty peaks (frame-perfect inputs)
-            const INITIAL_OBSTACLE_SPEED = 0.15; // Starting speed
-            const MAX_OBSTACLE_SPEED = 0.6; // Maximum speed at difficulty peak
+            const MAX_DIFFICULTY_SCORE = 120; // Score at which difficulty peaks (was 250)
+            const INITIAL_OBSTACLE_SPEED = 0.2; // Starting speed (increased from 0.15)
+            const MAX_OBSTACLE_SPEED = 0.7; // Maximum speed at difficulty peak (increased from 0.6)
             const MAX_DIFFICULTY_FACTOR = 4.0; // Maximum difficulty multiplier
             let obstacleSpeed = INITIAL_OBSTACLE_SPEED;
             let baseDifficulty = 1.0;
             let difficultyFactor = 1.0;
             
             // Obstacle spacing parameters
-            const INITIAL_MIN_OBSTACLE_DISTANCE = 2.0; // Starting distance between obstacles (in seconds)
-            const MIN_OBSTACLE_DISTANCE_AT_MAX = 0.45; // Minimum distance at max difficulty (frame-perfect timing)
-            const EARLY_GAME_MIN_SPACING = 1.0; // Minimum spacing in early game (0-20 score)
-            const EARLY_GAME_MAX_SPACING = 1.5; // Maximum spacing in early game (0-20 score)
-            const EARLY_GAME_THRESHOLD = 20; // Score threshold for early game spacing
-            const MID_GAME_THRESHOLD = 50; // Score threshold for mid game spacing
+            const INITIAL_MIN_OBSTACLE_DISTANCE = 1.0; // Starting distance between obstacles (reduced from 2.0)
+            const MIN_OBSTACLE_DISTANCE_AT_MAX = 0.4; // Minimum distance at max difficulty (frame-perfect timing)
+            const EARLY_GAME_MIN_SPACING = 1.0; // Minimum spacing in early game (0-25 score)
+            const EARLY_GAME_MAX_SPACING = 1.5; // Maximum spacing in early game (0-25 score)
+            const EARLY_GAME_THRESHOLD = 25; // Score threshold for early game spacing (increased from 20)
+            const CHALLENGE_THRESHOLD = 40; // Score at which more intense pacing begins (reduced from 50)
             let minObstacleDistance = INITIAL_MIN_OBSTACLE_DISTANCE;
             let lastObstacleTime = 0;
             let nextObstacleDistance = INITIAL_MIN_OBSTACLE_DISTANCE; // Variable to store next obstacle spacing
@@ -412,13 +314,11 @@
             let patternMode = false;
             let currentPatternIndex = 0;
             let currentPattern = [];
-            
-            // Burst mode variables
             let burstMode = false;
             let burstCount = 0;
             let maxBurstCount = 0;
-            let postBurstPause = false;
-            let pauseEndTime = 0;
+            let inCooldownPhase = false;
+            let cooldownEndTime = 0;
             
             // Add flag to track input readiness
             let inputsActive = true;
@@ -457,48 +357,28 @@
                 camera.position.set(0, 2, 5);
                 camera.lookAt(0, 1, -5);
                 
-                // Create renderer with appropriate settings
-                renderer = new THREE.WebGLRenderer({ 
-                    antialias: !LOW_PERFORMANCE_MODE,
-                    powerPreference: "high-performance"
-                });
+                // Create renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, LOW_PERFORMANCE_MODE ? 1 : 2));
-                renderer.shadowMap.enabled = SHADOW_ENABLED;
+                renderer.shadowMap.enabled = true;
+                document.getElementById('game-container').appendChild(renderer.domElement);
                 
-                // Add renderer to DOM
-                const container = document.getElementById('game-container');
-                container.appendChild(renderer.domElement);
-                
-                // Create lighting - simplified for mobile
-                const ambientLight = new THREE.AmbientLight(0xffffff, LOW_PERFORMANCE_MODE ? 0.8 : 0.6);
+                // Create lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
                 scene.add(ambientLight);
                 
-                if (!LOW_PERFORMANCE_MODE) {
-                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                    directionalLight.position.set(10, 20, 10);
-                    directionalLight.castShadow = true;
-                    // Optimize shadow map
-                    directionalLight.shadow.mapSize.width = 1024;
-                    directionalLight.shadow.mapSize.height = 1024;
-                    directionalLight.shadow.camera.near = 0.5;
-                    directionalLight.shadow.camera.far = 50;
-                    scene.add(directionalLight);
-                } else {
-                    // Simpler light for mobile
-                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                    directionalLight.position.set(10, 20, 10);
-                    directionalLight.castShadow = false;
-                    scene.add(directionalLight);
-                }
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 10);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
                 
-                // Create ground with optimized geometry
+                // Create ground
                 const groundGeometry = new THREE.BoxGeometry(20, 0.5, 100);
                 const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
                 ground = new THREE.Mesh(groundGeometry, groundMaterial);
                 ground.position.y = -0.25;
                 ground.position.z = -20;
-                ground.receiveShadow = SHADOW_ENABLED;
+                ground.receiveShadow = true;
                 scene.add(ground);
                 
                 // Create player
@@ -517,31 +397,13 @@
                 // Setup event listeners
                 setupEventListeners();
                 
-                // Initial render
-                renderer.render(scene, camera);
+                // Pre-render multiple frames to ensure stable state
+                for (let i = 0; i < 5; i++) {
+                    renderer.render(scene, camera);
+                }
                 
                 // Start animation loop
                 animate();
-                
-                // Force full screen on mobile
-                if (isMobile) {
-                    tryEnterFullscreen();
-                }
-            }
-            
-            // Attempt to enter fullscreen mode (especially helpful on mobile)
-            function tryEnterFullscreen() {
-                const gameContainer = document.getElementById('game-container');
-                
-                if (gameContainer.requestFullscreen) {
-                    gameContainer.requestFullscreen().catch(err => console.log('Fullscreen request failed:', err));
-                } else if (gameContainer.webkitRequestFullscreen) {
-                    gameContainer.webkitRequestFullscreen().catch(err => console.log('Fullscreen request failed:', err));
-                } else if (gameContainer.mozRequestFullScreen) {
-                    gameContainer.mozRequestFullScreen().catch(err => console.log('Fullscreen request failed:', err));
-                } else if (gameContainer.msRequestFullscreen) {
-                    gameContainer.msRequestFullscreen().catch(err => console.log('Fullscreen request failed:', err));
-                }
             }
             
             // Function to update the controls text in the UI
@@ -551,8 +413,7 @@
                 if (controlsInfo) {
                     controlsInfo.innerHTML = `
                         <p>Controls:</p>
-                        <div class="keyboard-controls">SPACE or UP ARROW to jump | DOWN ARROW to duck | P to pause</div>
-                        <div class="mobile-controls">Tap LEFT side to jump | Tap RIGHT side to duck</div>
+                        <p>SPACE or UP ARROW to jump | DOWN ARROW to duck | P to pause</p>
                     `;
                 }
                 
@@ -582,12 +443,12 @@
             function setupEventListeners() {
                 // Pre-bind functions for faster response
                 const jumpFunction = () => {
-                    if (!isJumping && (gameRunning || countdownActive) && !gamePaused) jump();
+                    if (!isJumping) jump();
                 };
                 
                 const duckFunction = () => {
                     isDownKeyPressed = true;
-                    if (!isInDuckAnimation && !isJumping && (gameRunning || countdownActive) && !gamePaused) duck();
+                    if (!isInDuckAnimation && !isJumping) duck();
                 };
                 
                 const keyReleasedFunction = () => {
@@ -596,11 +457,10 @@
                 
                 // Use window for key events to ensure consistent registration
                 window.addEventListener('keydown', (event) => {
-                    if (event.repeat) return; // Prevent key repeat
+                    event.preventDefault(); // Always prevent default to avoid browser scrolling
                     
                     if (event.code === 'KeyP') {
                         togglePause();
-                        event.preventDefault();
                         return;
                     }
                     
@@ -612,117 +472,50 @@
                     // Use pre-bound functions for faster response
                     if (event.code === 'Space' || event.code === 'ArrowUp') {
                         jumpFunction();
-                        event.preventDefault();
                     } else if (event.code === 'ArrowDown' || event.code === 'KeyS') {
                         duckFunction();
-                        event.preventDefault();
                     }
                 });
                 
                 window.addEventListener('keyup', (event) => {
+                    event.preventDefault(); // Always prevent default
+                    
                     if (event.code === 'ArrowDown' || event.code === 'KeyS') {
                         keyReleasedFunction();
-                        event.preventDefault();
                     }
                 });
                 
-                // Enhanced touch controls for mobile users
-                const jumpZone = document.getElementById('jump-zone');
-                const duckZone = document.getElementById('duck-zone');
-                const jumpIndicator = jumpZone.querySelector('.control-indicator');
-                const duckIndicator = duckZone.querySelector('.control-indicator');
-                
-                // Jump zone
-                jumpZone.addEventListener('touchstart', (event) => {
-                    event.preventDefault();
-                    jumpIndicator.classList.add('active');
-                    
-                    // Only allow jump during countdown or active game
-                    if ((gameRunning || countdownActive) && !gamePaused) {
-                        jumpFunction();
-                    } else if (!gameStarted) {
-                        // Start game if tapping on start screen
-                        startGame();
-                    }
-                });
-                
-                jumpZone.addEventListener('touchend', (event) => {
-                    event.preventDefault();
-                    jumpIndicator.classList.remove('active');
-                });
-                
-                // Duck zone
-                duckZone.addEventListener('touchstart', (event) => {
-                    event.preventDefault();
-                    duckIndicator.classList.add('active');
-                    
-                    // Only allow duck during countdown or active game
-                    if ((gameRunning || countdownActive) && !gamePaused) {
-                        duckFunction();
-                    } else if (!gameStarted) {
-                        // Start game if tapping on start screen
-                        startGame();
-                    }
-                });
-                
-                duckZone.addEventListener('touchend', (event) => {
-                    event.preventDefault();
-                    duckIndicator.classList.remove('active');
-                    keyReleasedFunction();
-                });
-                
-                // Add fallback for entire container (in case the zones aren't working)
+                // Touch controls for mobile users
                 const gameContainer = document.getElementById('game-container');
                 
+                // Top half of screen = jump
                 gameContainer.addEventListener('touchstart', (event) => {
-                    // Prevent default browser behavior
-                    event.preventDefault();
+                    event.preventDefault(); // Prevent default browser behavior
                     
-                    // If specific zones didn't capture the event
-                    if (event.target === gameContainer || event.target === renderer.domElement) {
-                        // Always allow input during countdown or active game
-                        if ((!gameRunning || gamePaused) && !countdownActive) {
-                            if (!gameStarted) {
-                                startGame();
-                            }
-                            return;
-                        }
-                        
-                        const touch = event.touches[0];
-                        const containerWidth = gameContainer.clientWidth;
-                        
-                        if (touch.clientX < containerWidth / 2) {
-                            // Left half = jump
-                            jumpIndicator.classList.add('active');
-                            jumpFunction();
-                        } else {
-                            // Right half = duck
-                            duckIndicator.classList.add('active');
-                            duckFunction();
-                        }
+                    // Always allow input during countdown or active game
+                    if ((!gameRunning || gamePaused) && !countdownActive) {
+                        return;
+                    }
+                    
+                    const touch = event.touches[0];
+                    const containerHeight = gameContainer.clientHeight;
+                    
+                    if (touch.clientY < containerHeight / 2) {
+                        // Top half = jump
+                        jumpFunction();
+                    } else {
+                        // Bottom half = duck
+                        duckFunction();
                     }
                 });
                 
                 gameContainer.addEventListener('touchend', (event) => {
-                    // If specific zones didn't capture the event
-                    if (event.target === gameContainer || event.target === renderer.domElement) {
-                        jumpIndicator.classList.remove('active');
-                        duckIndicator.classList.remove('active');
-                        keyReleasedFunction();
-                    }
                     event.preventDefault();
+                    keyReleasedFunction();
                 });
                 
                 // Add click event for start button
-                document.getElementById('start-button').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    startGame();
-                    
-                    // Try to enter fullscreen on start button click (mobile friendly)
-                    if (isMobile) {
-                        setTimeout(tryEnterFullscreen, 100);
-                    }
-                });
+                document.getElementById('start-button').addEventListener('click', startGame);
                 
                 // Add click event for resume button
                 document.getElementById('resume-button').addEventListener('click', togglePause);
@@ -732,20 +525,9 @@
                 
                 // Handle window resize
                 window.addEventListener('resize', () => {
-                    // Update viewport height variable
-                    setVHVariable();
-                    
-                    // Update camera and renderer
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-                
-                // Handle visibility change for pause
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden && gameRunning && !gamePaused) {
-                        togglePause();
-                    }
                 });
             }
             
@@ -785,7 +567,7 @@
                 console.log("Input system ready");
             }
             
-            // Function to start the countdown with smoother animation
+            // Function to start the countdown
             function startCountdown(callback) {
                 const countdownElement = document.getElementById('countdown');
                 const readyTextElement = document.getElementById('ready-text');
@@ -794,7 +576,11 @@
                 
                 // Make player responsive to inputs immediately - even before countdown
                 inputsActive = true;
-                ensureInputReadiness();
+                
+                // Pre-rendering for immediate feedback
+                for (let i = 0; i < 5; i++) {
+                    renderer.render(scene, camera);
+                }
                 
                 // Show the ready text
                 readyTextElement.style.display = 'block';
@@ -804,11 +590,8 @@
                 countdownElement.textContent = countdownValue;
                 countdownElement.classList.remove('animate');
                 
-                // Force focus on game container
+                // Force focus again
                 document.getElementById('game-container').focus();
-                
-                // Pre-render to show countdown immediately
-                renderer.render(scene, camera);
                 
                 // Play animation and decrement counter every second
                 const countdownInterval = setInterval(() => {
@@ -844,11 +627,6 @@
             
             // Function to start the game
             function startGame() {
-                // Try to enter fullscreen mode on mobile
-                if (isMobile) {
-                    tryEnterFullscreen();
-                }
-                
                 // Hide the start screen immediately
                 document.getElementById('start-screen').style.display = 'none';
                 
@@ -866,7 +644,7 @@
                                      (Math.random() * (EARLY_GAME_MAX_SPACING - EARLY_GAME_MIN_SPACING));
                 minObstacleDistance = INITIAL_MIN_OBSTACLE_DISTANCE;
                 
-                // Reset player state
+                // Make sure player is in correct position and visible before countdown
                 player.position.y = DEFAULT_Y;
                 player.scale.y = 1.0;
                 player.visible = true;
@@ -882,7 +660,7 @@
                 // Make player responsive even during countdown
                 inputsActive = true;
                 
-                // Clean up any existing obstacles
+                // Remove all obstacles
                 for (const obstacle of obstacles) {
                     scene.remove(obstacle);
                 }
@@ -891,29 +669,26 @@
                 // Force focus on the game container
                 document.getElementById('game-container').focus();
                 
-                // Render initial state to show changes immediately
+                // Render initial state
                 renderer.render(scene, camera);
                 
-                // Add slight delay before countdown to ensure UI is updated
-                setTimeout(() => {
-                    // Start countdown and begin game after countdown
-                    startCountdown(() => {
-                        // Set game state variables after countdown
-                        gameStarted = true;
-                        gameRunning = true;
-                        firstObstacleSpawned = false;
-                        
-                        // Set last obstacle time
-                        lastObstacleTime = Date.now() / 1000;
-                        
-                        // Create first obstacle faster (after 1 second)
-                        setTimeout(() => {
-                            // Choose a random obstacle type for the first one
-                            const firstObstacleType = Math.random() > 0.5 ? 1 : 0;
-                            createObstacle(firstObstacleType);
-                        }, 1000);
-                    });
-                }, 100);
+                // Start countdown and begin game after countdown
+                startCountdown(() => {
+                    // Set game state variables after countdown
+                    gameStarted = true;
+                    gameRunning = true;
+                    firstObstacleSpawned = false;
+                    
+                    // Set last obstacle time
+                    lastObstacleTime = Date.now() / 1000;
+                    
+                    // Create first obstacle faster (after 0.5 seconds)
+                    setTimeout(() => {
+                        // Choose a random obstacle type for the first one
+                        const firstObstacleType = Math.random() > 0.5 ? 1 : 0;
+                        createObstacle(firstObstacleType);
+                    }, 500);
+                });
             }
             
             // Player jump function with adaptive duration based on game speed
@@ -1080,7 +855,7 @@
                 duckAnimation();
             }
             
-            // Create obstacle with optimized geometry
+            // Create obstacle (type 0 = jump over, type 1 = duck under)
             function createObstacle(type) {
                 let obstacleGeometry, obstacleMaterial;
                 
@@ -1088,53 +863,33 @@
                 firstObstacleSpawned = true;
                 
                 if (type === 0) {
-                    // Low obstacle (jump over) - simpler on low-performance devices
+                    // Low obstacle (jump over)
                     obstacleGeometry = new THREE.BoxGeometry(1, 0.5, 0.5);
                     obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0xFF4500 });
                 } else {
-                    // High obstacle (duck under) - Simplified on mobile
-                    if (LOW_PERFORMANCE_MODE) {
-                        // Simplified duck for mobile
-                        obstacleGeometry = new THREE.BoxGeometry(1, 0.8, 0.7);
-                        obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
-                        
-                        let obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
-                        obstacle.position.y = 1.0;
-                        obstacle.position.z = -50;
-                        obstacle.castShadow = SHADOW_ENABLED;
-                        obstacle.userData = { type: type, passed: false, hit: false };
-                        
-                        scene.add(obstacle);
-                        obstacles.push(obstacle);
-                        return;
-                    } else {
-                        // Detailed duck for higher-end devices
-                        obstacleGeometry = new THREE.Group();
-                        
-                        // Duck body
-                        const bodyGeo = new THREE.BoxGeometry(1, 0.8, 0.7);
-                        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
-                        const body = new THREE.Mesh(bodyGeo, bodyMat);
-                        body.position.y = 0.2;
-                        body.castShadow = SHADOW_ENABLED;
-                        obstacleGeometry.add(body);
-                        
-                        // Duck head
-                        const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                        const headMat = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
-                        const head = new THREE.Mesh(headGeo, headMat);
-                        head.position.set(0, 0.8, 0.2);
-                        head.castShadow = SHADOW_ENABLED;
-                        obstacleGeometry.add(head);
-                        
-                        // Duck bill
-                        const billGeo = new THREE.BoxGeometry(0.3, 0.2, 0.3);
-                        const billMat = new THREE.MeshStandardMaterial({ color: 0xFFA500 });
-                        const bill = new THREE.Mesh(billGeo, billMat);
-                        bill.position.set(0, 0.8, 0.5);
-                        bill.castShadow = SHADOW_ENABLED;
-                        obstacleGeometry.add(bill);
-                    }
+                    // High obstacle (duck under) - Duck themed
+                    obstacleGeometry = new THREE.Group();
+                    
+                    // Duck body
+                    const bodyGeo = new THREE.BoxGeometry(1, 0.8, 0.7);
+                    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
+                    const body = new THREE.Mesh(bodyGeo, bodyMat);
+                    body.position.y = 0.2;
+                    obstacleGeometry.add(body);
+                    
+                    // Duck head
+                    const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                    const headMat = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
+                    const head = new THREE.Mesh(headGeo, headMat);
+                    head.position.set(0, 0.8, 0.2);
+                    obstacleGeometry.add(head);
+                    
+                    // Duck bill
+                    const billGeo = new THREE.BoxGeometry(0.3, 0.2, 0.3);
+                    const billMat = new THREE.MeshStandardMaterial({ color: 0xFFA500 });
+                    const bill = new THREE.Mesh(billGeo, billMat);
+                    bill.position.set(0, 0.8, 0.5);
+                    obstacleGeometry.add(bill);
                     
                     // Create material for placeholder
                     obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
@@ -1151,7 +906,7 @@
                 }
                 
                 obstacle.position.z = -50;
-                obstacle.castShadow = SHADOW_ENABLED;
+                obstacle.castShadow = true;
                 obstacle.userData = { type: type, passed: false, hit: false };
                 
                 scene.add(obstacle);
@@ -1258,108 +1013,122 @@
                     const progressToMax = score / MAX_DIFFICULTY_SCORE;
                     
                     // More aggressive early-game scaling for obstacle speed
-                    // Uses a cubic curve for initial boost, then more gradual scaling
-                    const speedProgress = Math.pow(progressToMax, score < 50 ? 1.2 : 1.7);
+                    // Uses a quadratic curve for faster initial boost
+                    const speedProgress = Math.pow(progressToMax, score < 30 ? 0.8 : 1.2);
                     obstacleSpeed = INITIAL_OBSTACLE_SPEED + 
                                    (MAX_OBSTACLE_SPEED - INITIAL_OBSTACLE_SPEED) * speedProgress;
                     
-                    // Early game (score 0-20): Random spacing between 1.0 and 1.5 seconds
+                    // Early game (score 0-25): Random spacing between 1.0 and 1.5 seconds
                     if (score <= EARLY_GAME_THRESHOLD) {
                         nextObstacleDistance = EARLY_GAME_MIN_SPACING + 
                                               (Math.random() * (EARLY_GAME_MAX_SPACING - EARLY_GAME_MIN_SPACING));
                     } 
-                    // Mid game (score 21-49): Introduce occasional sub-1 second spacing
-                    else if (score < MID_GAME_THRESHOLD) {
+                    // Mid game (score 26-39): Introduce occasional sub-1 second spacing
+                    else if (score < CHALLENGE_THRESHOLD) {
                         // Base spacing decreases with score
-                        const baseSpacing = EARLY_GAME_MIN_SPACING - (0.3 * (score - EARLY_GAME_THRESHOLD) / 30);
+                        const baseSpacing = EARLY_GAME_MIN_SPACING - (0.3 * (score - EARLY_GAME_THRESHOLD) / 15);
                         
-                        // 20% chance of a quick sub-1 second obstacle
-                        if (Math.random() < 0.2) {
-                            nextObstacleDistance = Math.max(0.75, baseSpacing - 0.5 + (Math.random() * 0.3));
+                        // 30% chance of a quick sub-1 second obstacle (increased from 20%)
+                        if (Math.random() < 0.3) {
+                            nextObstacleDistance = Math.max(0.7, baseSpacing - 0.4 + (Math.random() * 0.3));
                         } else {
                             // Normal spacing with some variation
-                            nextObstacleDistance = baseSpacing + (Math.random() * 0.4);
+                            nextObstacleDistance = baseSpacing + (Math.random() * 0.3);
                         }
                     }
-                    // Intense game (score 50+): More aggressive with rhythmic bursts and pauses
+                    // Challenging game (score 40+): Rhythmic patterns, bursts and pauses
                     else {
-                        // Check if we're currently in a pause after a burst
-                        if (postBurstPause) {
+                        // If in cooldown phase, enforce a brief pause
+                        if (inCooldownPhase) {
                             const currentTime = Date.now() / 1000;
-                            if (currentTime >= pauseEndTime) {
-                                // Pause is over, return to normal gameplay
-                                postBurstPause = false;
+                            if (currentTime >= cooldownEndTime) {
+                                inCooldownPhase = false;
+                                // After cooldown, kick off either a burst or a pattern
+                                if (Math.random() < 0.7) { // Increased chance for bursts (from 0.6)
+                                    setupBurst();
+                                } else {
+                                    generateObstaclePattern();
+                                }
                             } else {
-                                // Still in pause, set a longer distance
-                                nextObstacleDistance = 1.5 + (Math.random() * 0.5);
-                                return;
+                                // During cooldown, maintain a shorter pause
+                                nextObstacleDistance = 1.5 + (Math.random() * 0.3); // Reduced from 2.0
                             }
                         }
-                        
-                        // Check if we should start a new burst sequence
-                        if (!burstMode && !patternMode && Math.random() < 0.3) {
-                            startBurstMode();
-                        }
-                        
-                        if (burstMode) {
-                            // We're in burst mode, create tight sequences of obstacles
-                            handleBurstMode();
-                        } else {
-                            // Normal intense difficulty scaling - use late game calculation
-                            // Calculate base spacing that decreases as score approaches max
-                            const lateGameProgress = Math.min(1, (score - MID_GAME_THRESHOLD) / (MAX_DIFFICULTY_SCORE - MID_GAME_THRESHOLD));
+                        // If in burst mode, create tightly spaced obstacles
+                        else if (burstMode) {
+                            // Determine spacing based on burst progression
+                            const burstProgress = burstCount / maxBurstCount;
                             
-                            // Non-linear curve for more dramatic spacing reduction
-                            const baseSpacing = 0.9 - (0.4 * Math.pow(lateGameProgress, 1.2));
+                            // Tighter spacing in the middle of the burst, slightly looser at start/end
+                            const baseSpacing = 0.65 - (0.2 * Math.sin(burstProgress * Math.PI));
                             
-                            // Add randomization to keep player on their toes
-                            const randomVariation = Math.max(0.05, 0.25 - (0.15 * lateGameProgress));
+                            // Add small random variation to avoid predictability
                             nextObstacleDistance = Math.max(MIN_OBSTACLE_DISTANCE_AT_MAX, 
-                                                        baseSpacing + (Math.random() * randomVariation) - (randomVariation / 2));
+                                                         baseSpacing + (Math.random() * 0.15) - 0.075);
+                            
+                            burstCount++;
+                            
+                            // End burst and enter cooldown after completing the sequence
+                            if (burstCount >= maxBurstCount) {
+                                burstMode = false;
+                                startCooldown();
+                            }
                         }
-                    }
-                    
-                    // After score 50, occasionally generate patterns of obstacles
-                    if (score >= MID_GAME_THRESHOLD && Math.random() < 0.25 && !patternMode && !burstMode) {
-                        generateObstaclePattern();
+                        // If in pattern mode, spacing is handled by pattern generation
+                        else if (patternMode) {
+                            // Pattern mode spacing is handled when the pattern is generated
+                            // Here we just check if the pattern is complete
+                            if (currentPatternIndex >= currentPattern.length) {
+                                patternMode = false;
+                                startCooldown();
+                            }
+                        }
+                        // Normal gameplay - choose a new challenge type
+                        else {
+                            const challengeRoll = Math.random();
+                            
+                            // 70% chance for burst, 25% chance for pattern, 5% chance for cooldown
+                            if (challengeRoll < 0.7) {
+                                setupBurst();
+                            } else if (challengeRoll < 0.95) {
+                                generateObstaclePattern();
+                            } else {
+                                startCooldown();
+                            }
+                        }
                     }
                 }
             }
             
-            // Start a burst sequence of obstacles
-            function startBurstMode() {
+            // Setup a burst of tightly spaced obstacles
+            function setupBurst() {
                 burstMode = true;
                 burstCount = 0;
                 
-                // Determine length of burst based on score
-                const burstDifficultyFactor = Math.min(1, (score - MID_GAME_THRESHOLD) / (MAX_DIFFICULTY_SCORE - MID_GAME_THRESHOLD));
-                maxBurstCount = Math.floor(3 + (burstDifficultyFactor * 4)); // 3-7 obstacles in a burst
+                // More bursts at higher scores
+                const baseBurstSize = 3;
+                const extraBursts = Math.min(5, Math.floor((score - CHALLENGE_THRESHOLD) / 20)); // More frequent burst size increases
+                maxBurstCount = baseBurstSize + extraBursts;
                 
-                console.log("Starting burst mode: " + maxBurstCount + " obstacles");
+                // Add randomness to burst size
+                if (Math.random() < 0.6) { // Increased chance
+                    maxBurstCount += Math.floor(Math.random() * 3); // Up to 2 extra obstacles
+                }
+                
+                // For first obstacle in burst, slightly longer time to prepare
+                nextObstacleDistance = 0.8 + (Math.random() * 0.2); // Reduced from 0.9
             }
             
-            // Handle obstacle spacing during burst mode
-            function handleBurstMode() {
-                burstCount++;
+            // Start a cooldown period between challenge sequences
+            function startCooldown() {
+                inCooldownPhase = true;
                 
-                // Tight spacing for burst mode obstacles
-                const burstDifficultyFactor = Math.min(1, (score - MID_GAME_THRESHOLD) / (MAX_DIFFICULTY_SCORE - MID_GAME_THRESHOLD));
-                const minBurstSpacing = 0.6 - (0.15 * burstDifficultyFactor);
-                const maxBurstSpacing = 0.8 - (0.2 * burstDifficultyFactor);
+                // Cooldown duration between 1.0 and 2.0 seconds (reduced from 1.5-2.5)
+                const cooldownDuration = 1.0 + (Math.random() * 1.0);
+                cooldownEndTime = (Date.now() / 1000) + cooldownDuration;
                 
-                // Set tighter spacing for burst obstacles
-                nextObstacleDistance = minBurstSpacing + (Math.random() * (maxBurstSpacing - minBurstSpacing));
-                
-                // Check if burst sequence is complete
-                if (burstCount >= maxBurstCount) {
-                    burstMode = false;
-                    
-                    // Set a pause before next obstacles
-                    postBurstPause = true;
-                    pauseEndTime = (Date.now() / 1000) + 1.5 + (Math.random() * 0.5); // 1.5-2 second pause
-                    
-                    console.log("Burst complete, pausing until: " + pauseEndTime);
-                }
+                // Set initial obstacle distance for cooldown period
+                nextObstacleDistance = cooldownDuration;
             }
             
             // Generate a challenging but fair pattern of obstacles
@@ -1367,60 +1136,57 @@
                 patternMode = true;
                 currentPatternIndex = 0;
                 
-                // Create patterns of 2-5 obstacles that require precise timing
-                // Higher score = longer patterns
-                const patternLengthFactor = Math.min(1, (score - MID_GAME_THRESHOLD) / (MAX_DIFFICULTY_SCORE - MID_GAME_THRESHOLD));
-                const baseLength = Math.floor(2 + (patternLengthFactor * 3)); // 2-5 obstacles
-                const patternLength = baseLength + (Math.random() < 0.3 ? 1 : 0); // Occasional +1
-                
+                // Create patterns of 3-6 obstacles that require precise timing (increased from 3-5)
+                const patternLength = Math.floor(Math.random() * 4) + 3; // 3-6 obstacles
                 currentPattern = [];
                 
                 // For patterns, use tighter spacing to create rhythm challenges
-                // But not quite as tight as burst mode
-                const patternDifficultyFactor = Math.min(1, (score - MID_GAME_THRESHOLD) / (MAX_DIFFICULTY_SCORE - MID_GAME_THRESHOLD));
-                const minPatternSpacing = 0.7 - (0.2 * patternDifficultyFactor);
-                const maxPatternSpacing = 0.9 - (0.2 * patternDifficultyFactor);
+                // Base spacing tightens as score increases
+                const basePatternSpacing = Math.max(
+                    MIN_OBSTACLE_DISTANCE_AT_MAX,
+                    0.85 - (0.4 * Math.min(1, (score - CHALLENGE_THRESHOLD) / (MAX_DIFFICULTY_SCORE - CHALLENGE_THRESHOLD)))
+                );
                 
-                nextObstacleDistance = minPatternSpacing + (Math.random() * (maxPatternSpacing - minPatternSpacing));
+                nextObstacleDistance = basePatternSpacing + (Math.random() * 0.2);
                 
                 // First obstacle is random
                 currentPattern.push(Math.random() > 0.5 ? 1 : 0);
                 
-                // Generate rest of pattern with more variety but balanced challenge
+                // Generate rest of pattern based on rhythmic principles
                 for (let i = 1; i < patternLength; i++) {
                     const prevType = currentPattern[i-1];
-                    const prevPrevType = i > 1 ? currentPattern[i-2] : -1;
                     
-                    // Create more varied patterns based on score
-                    if (score > 150) {
-                        // At higher scores, patterns can be more challenging
-                        // But avoid triple same-type obstacles (too easy to stay in one state)
-                        if (prevType === prevPrevType) {
-                            currentPattern.push(1 - prevType); // Opposite type
-                        } else {
-                            // Higher chance of alternating patterns at high scores
-                            const randomFactor = Math.random();
-                            if (randomFactor < 0.6) {
-                                // 60% chance of alternating pattern (more challenging)
-                                currentPattern.push(1 - prevType);
-                            } else {
-                                // 40% chance of same type (gives brief respite)
-                                currentPattern.push(prevType);
-                            }
-                        }
+                    // Create "micro-rhythms" within patterns
+                    // After score 80, sometimes repeat the same obstacle type to create challenging sustained states
+                    if (score > 80 && Math.random() < 0.4) { // Reduced from 100
+                        // Repeat the same obstacle type (forces player to maintain state)
+                        currentPattern.push(prevType);
                     } else {
-                        // At mid scores, patterns are more forgiving
-                        // Avoid triple same-type obstacles
-                        if (prevType === prevPrevType) {
-                            currentPattern.push(1 - prevType); // Opposite type
-                        } else {
-                            // 50/50 chance
-                            currentPattern.push(Math.random() > 0.5 ? 1 : 0);
-                        }
+                        // Switch obstacle type (forces player to transition)
+                        currentPattern.push(1 - prevType);
+                    }
+                    
+                    // Vary the timing within patterns for more interesting rhythm
+                    if (i < patternLength - 1) {
+                        // Store unique spacing for each obstacle in the pattern
+                        currentPattern[i-1] = {
+                            type: currentPattern[i-1], 
+                            spacing: basePatternSpacing * (0.9 + (Math.random() * 0.2))
+                        };
+                    } else {
+                        // Convert first element to object format too
+                        currentPattern[i-1] = {
+                            type: currentPattern[i-1],
+                            spacing: basePatternSpacing * (0.9 + (Math.random() * 0.2))
+                        };
                     }
                 }
                 
-                console.log("Pattern generated: " + patternLength + " obstacles");
+                // Last element in pattern
+                currentPattern[patternLength-1] = {
+                    type: currentPattern[patternLength-1],
+                    spacing: basePatternSpacing * (0.9 + (Math.random() * 0.2))
+                };
             }
             
             // Update score display
@@ -1511,7 +1277,8 @@
                 currentPatternIndex = 0;
                 burstMode = false;
                 burstCount = 0;
-                postBurstPause = false;
+                maxBurstCount = 0;
+                inCooldownPhase = false;
                 
                 // Reset player position, scale and visibility
                 player.position.y = DEFAULT_Y;
@@ -1561,12 +1328,12 @@
                     // Set last obstacle time
                     lastObstacleTime = Date.now() / 1000;
                     
-                    // Create first obstacle faster (after 1 second)
+                    // Create first obstacle faster (after 0.5 seconds)
                     setTimeout(() => {
                         // Choose a random obstacle type for the first one
                         const firstObstacleType = Math.random() > 0.5 ? 1 : 0;
                         createObstacle(firstObstacleType);
-                    }, 1000);
+                    }, 500);
                 });
             }
             
@@ -1575,15 +1342,11 @@
                 requestAnimationFrame(animate);
                 
                 try {
-                    frameCount++;
-                    
-                    // Skip rendering on some frames for low-performance devices
-                    if (LOW_PERFORMANCE_MODE && frameCount % ANIMATION_FRAME_THROTTLE !== 0) {
-                        return;
-                    }
-                    
                     // Allow input handling during countdown or during active game
                     inputsActive = gameStarted || gameRunning || countdownActive;
+                    
+                    // Always render the scene to ensure visual responsiveness
+                    // This ensures that control inputs are always visually represented
                     
                     if (gameRunning && !gamePaused) {
                         // Move ground to create illusion of movement
@@ -1593,24 +1356,14 @@
                         }
                         
                         // Move obstacles
-                        const objectsToRemove = [];
-                        
                         for (let i = obstacles.length - 1; i >= 0; i--) {
                             const obstacle = obstacles[i];
                             obstacle.position.z += obstacleSpeed;
                             
-                            // Queue removal of obstacles that have gone past the camera
+                            // Remove obstacles that have gone past the camera
                             if (obstacle.position.z > 10) {
-                                objectsToRemove.push(i);
-                            }
-                        }
-                        
-                        // Batch remove obstacles for performance
-                        if (objectsToRemove.length > 0) {
-                            for (let i = objectsToRemove.length - 1; i >= 0; i--) {
-                                const index = objectsToRemove[i];
-                                scene.remove(obstacles[index]);
-                                obstacles.splice(index, 1);
+                                scene.remove(obstacle);
+                                obstacles.splice(i, 1);
                             }
                         }
                         
@@ -1625,19 +1378,26 @@
                             
                             if (patternMode) {
                                 // Use the next obstacle in the pattern
-                                obstacleType = currentPattern[currentPatternIndex];
-                                currentPatternIndex++;
+                                const patternItem = currentPattern[currentPatternIndex];
+                                obstacleType = typeof patternItem === 'object' ? patternItem.type : patternItem;
                                 
-                                // Reset pattern mode when pattern is complete
-                                if (currentPatternIndex >= currentPattern.length) {
-                                    patternMode = false;
-                                    
-                                    // After pattern, give a slight breather
-                                    nextObstacleDistance = 1.2 + (Math.random() * 0.3);
+                                // If we have spacing info, use it for the next obstacle
+                                if (typeof patternItem === 'object' && patternItem.spacing) {
+                                    nextObstacleDistance = patternItem.spacing;
                                 }
+                                
+                                currentPatternIndex++;
                             } else {
-                                // Choose obstacle type with pure randomness - true coin flip
-                                obstacleType = Math.random() > 0.5 ? 1 : 0;
+                                // Choose obstacle type with weighted randomness
+                                // After score 100, slightly favor alternating patterns for more engaging gameplay
+                                if (score > 100 && obstacles.length > 0) {
+                                    const lastObstacleType = obstacles[obstacles.length - 1].userData.type;
+                                    // 70% chance to alternate, 30% chance for same type
+                                    obstacleType = Math.random() < 0.7 ? (1 - lastObstacleType) : lastObstacleType;
+                                } else {
+                                    // Pure 50/50 chance
+                                    obstacleType = Math.random() > 0.5 ? 1 : 0;
+                                }
                             }
                             
                             createObstacle(obstacleType);
