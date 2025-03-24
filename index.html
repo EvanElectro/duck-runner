@@ -20,7 +20,7 @@
         }
         #score-display {
             position: absolute;
-            bottom: 10vh;
+            bottom: 20vh;
             left: 50%;
             transform: translateX(-50%);
             color: white;
@@ -188,7 +188,7 @@
         }
         @keyframes pulse {
             from { text-shadow: 0 0 20px rgba(0, 0, 0, 0.8); }
-            to { text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.6); }
+            to { text-shadow: 0 0 30px rgba(255, 255, 0, 0.8), 0 0 40px rgba(0, 255, 255, 0.6); }
         }
         #ready-text {
             position: absolute;
@@ -201,6 +201,15 @@
             z-index: 300;
             display: none;
             font-weight: bold;
+        }
+        @media (min-width: 1024px) {
+            #score-display {
+                bottom: 25vh;
+                font-size: 2rem;
+            }
+            #instructions {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -331,7 +340,13 @@
                     if (touch.clientY < containerHeight / 2) jumpFunction();
                     else duckFunction();
                 });
-                document.getElementById('start-button').addEventListener('click', startGame);
+                const startButton = document.getElementById('start-button');
+                startButton.addEventListener('click', startGame);
+                startButton.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    console.log("Start button touched on mobile");
+                    startGame();
+                });
                 document.getElementById('resume-button').addEventListener('click', togglePause);
                 document.getElementById('restart-button').addEventListener('click', restartGame);
                 window.addEventListener('resize', () => {
@@ -362,6 +377,7 @@
             }
 
             function startGame() {
+                console.log("startGame() called");
                 document.getElementById('start-screen').style.display = 'none';
                 score = 0;
                 updateScoreDisplay();
@@ -384,7 +400,10 @@
                 isInvincible = false;
                 for (const obstacle of obstacles) scene.remove(obstacle);
                 obstacles = [];
+                document.getElementById('game-container').focus();
+                renderer.render(scene, camera);
                 startCountdown(() => {
+                    console.log("Countdown complete, starting game");
                     gameStarted = true;
                     gameRunning = true;
                     firstObstacleSpawned = false;
@@ -762,6 +781,7 @@
             }
 
             function startCountdown(callback) {
+                console.log("startCountdown() called");
                 const countdownElement = document.getElementById('countdown');
                 const readyTextElement = document.getElementById('ready-text');
                 countdownValue = 3;
