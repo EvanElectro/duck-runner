@@ -38,6 +38,7 @@
             flex-wrap: nowrap;
             align-items: center;
             gap: 10px;
+            max-width: 200px;
         }
         #lives-label {
             color: white;
@@ -225,6 +226,35 @@
             #instructions {
                 font-size: 1.5rem;
             }
+            #lives-display {
+                gap: 8px;
+            }
+            #lives-label {
+                font-size: 1rem;
+            }
+            .life-circle {
+                width: 1.5rem;
+                height: 1.5rem;
+            }
+            #start-title {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+            #start-subtitle {
+                font-size: 1.5rem;
+                margin-bottom: 2rem;
+                max-width: 600px;
+            }
+            #start-button {
+                padding: 10px 30px;
+                font-size: 1.2rem;
+            }
+            #controls-info {
+                font-size: 1rem;
+                margin-top: 1.5rem;
+                padding: 10px;
+                max-width: 400px;
+            }
         }
     </style>
 </head>
@@ -362,8 +392,14 @@
                     console.log("Start button touched on mobile");
                     startGame();
                 });
+                const restartButton = document.getElementById('restart-button');
+                restartButton.addEventListener('click', restartGame);
+                restartButton.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    console.log("Restart button touched on mobile");
+                    restartGame();
+                });
                 document.getElementById('resume-button').addEventListener('click', togglePause);
-                document.getElementById('restart-button').addEventListener('click', restartGame);
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -754,6 +790,7 @@
             }
 
             function restartGame() {
+                console.log("restartGame() called");
                 document.getElementById('game-over').style.display = 'none';
                 document.getElementById('pause-screen').style.display = 'none';
                 document.getElementById('lives-display').style.display = 'flex';
@@ -790,6 +827,7 @@
                 inputsActive = true;
                 renderer.render(scene, camera);
                 startCountdown(() => {
+                    console.log("Countdown complete, starting game");
                     gameStarted = true;
                     gameRunning = true;
                     firstObstacleSpawned = false;
