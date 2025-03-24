@@ -18,6 +18,29 @@
             touch-action: none;
             tabindex: "-1";
         }
+        #mute-button {
+            position: absolute;
+            top: 5vh;
+            left: 5vw;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        #mute-button:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
         #score-display {
             position: absolute;
             bottom: 20vh;
@@ -217,6 +240,11 @@
                 width: 4vw;
                 height: 4vw;
             }
+            #mute-button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
         }
         @media (min-width: 1024px) {
             #score-display {
@@ -255,11 +283,23 @@
                 padding: 10px;
                 max-width: 400px;
             }
+            #mute-button {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+                top: 20px;
+                left: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="game-container" tabindex="-1">
+        <audio id="background-music" loop>
+            <source src="Starlight Blue Background.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+        <button id="mute-button">🔊</button>
         <div id="lives-display">
             <div id="lives-label">Lives:</div>
             <div class="lives-container"></div>
@@ -322,6 +362,7 @@
                   DUCK_HEIGHT = 0.5, DEFAULT_Y = PLAYER_HEIGHT / 2, DUCK_TRANSITION_SPEED = 0.04;
             let animationState = { jumpStartHeight: 0, duckStartHeight: 0, duckStartScale: 1.0 };
             let firstObstacleSpawned = false;
+            let backgroundMusic, isMuted = false;
 
             function init() {
                 scene = new THREE.Scene();
@@ -400,6 +441,19 @@
                     restartGame();
                 });
                 document.getElementById('resume-button').addEventListener('click', togglePause);
+                
+                // Set up mute button
+                const muteButton = document.getElementById('mute-button');
+                muteButton.addEventListener('click', toggleMute);
+                muteButton.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    toggleMute();
+                });
+                
+                // Initialize background music
+                backgroundMusic = document.getElementById('background-music');
+                backgroundMusic.volume = 0.5;  // Set initial volume to 50%
+                
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -411,6 +465,21 @@
                         window.location.reload();
                     }
                 });
+            }
+
+            function toggleMute() {
+                isMuted = !isMuted;
+                const muteButton = document.getElementById('mute-button');
+                
+                if (isMuted) {
+                    backgroundMusic.pause();
+                    muteButton.textContent = '🔇';
+                } else {
+                    backgroundMusic.play().catch(e => {
+                        console.log("Auto-play prevented. User must interact with the page first.");
+                    });
+                    muteButton.textContent = '🔊';
+                }
             }
 
             function updateControlsText() {
@@ -459,6 +528,14 @@
                 obstacles = [];
                 document.getElementById('game-container').focus();
                 renderer.render(scene, camera);
+                
+                // Play background music if not muted
+                if (!isMuted) {
+                    backgroundMusic.play().catch(e => {
+                        console.log("Auto-play prevented. User must interact with the page first.");
+                    });
+                }
+                
                 startCountdown(() => {
                     console.log("Countdown complete, starting game");
                     gameStarted = true;
@@ -776,6 +853,16 @@
                 if (!gameStarted || !gameRunning) return;
                 gamePaused = !gamePaused;
                 document.getElementById('pause-screen').style.display = gamePaused ? 'flex' : 'none';
+                
+                // Pause/resume music with game
+                if (gamePaused && !isMuted) {
+                    backgroundMusic.pause();
+                } else if (!gamePaused && !isMuted) {
+                    backgroundMusic.play().catch(e => {
+                        console.log("Auto-play prevented. User must interact with the page first.");
+                    });
+                }
+                
                 if (!gamePaused) lastObstacleTime = Date.now() / 1000;
             }
 
@@ -787,6 +874,9 @@
                 document.getElementById('lives-display').style.display = 'none';
                 document.getElementById('final-score').textContent = `Final Score: ${score}`;
                 document.getElementById('game-over').style.display = 'block';
+                
+                // Pause music on game over
+                backgroundMusic.pause();
             }
 
             function restartGame() {
@@ -826,6 +916,14 @@
                 obstacles = [];
                 inputsActive = true;
                 renderer.render(scene, camera);
+                
+                // Play background music if not muted
+                if (!isMuted) {
+                    backgroundMusic.play().catch(e => {
+                        console.log("Auto-play prevented. User must interact with the page first.");
+                    });
+                }
+                
                 startCountdown(() => {
                     console.log("Countdown complete, starting game");
                     gameStarted = true;
