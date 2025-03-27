@@ -363,6 +363,61 @@
             let animationState = { jumpStartHeight: 0, duckStartHeight: 0, duckStartScale: 1.0 };
             let firstObstacleSpawned = false;
             let backgroundMusic, isMuted = false;
+            
+            // Sound effects
+            let jumpSound, duckSound, collisionSound;
+            
+            // Sound manager for handling all game sounds
+            const soundManager = {
+                init() {
+                    // Create Audio objects for each sound effect
+                    jumpSound = new Audio('JumpSound.mp3');
+                    duckSound = new Audio('DuckSound.mp3');
+                    collisionSound = new Audio('Light Impact Sound.mp3');
+                    
+                    // Preload sounds
+                    jumpSound.load();
+                    duckSound.load();
+                    collisionSound.load();
+                    
+                    // Set properties
+                    jumpSound.volume = 0.5;
+                    duckSound.volume = 0.5;
+                    collisionSound.volume = 0.6;
+                },
+                
+                play(sound) {
+                    if (isMuted) return;
+                    
+                    // Reset sound to beginning if it's already playing
+                    sound.pause();
+                    sound.currentTime = 0;
+                    
+                    // Play the sound with a catch for browsers that block autoplay
+                    sound.play().catch(e => {
+                        console.log("Sound play prevented:", e);
+                    });
+                },
+                
+                playJump() {
+                    this.play(jumpSound);
+                },
+                
+                playDuck() {
+                    this.play(duckSound);
+                },
+                
+                playCollision() {
+                    this.play(collisionSound);
+                },
+                
+                setMute(muted) {
+                    // This function is called when the mute button is toggled
+                    jumpSound.muted = muted;
+                    duckSound.muted = muted;
+                    collisionSound.muted = muted;
+                }
+            };
 
             function init() {
                 scene = new THREE.Scene();
@@ -391,6 +446,10 @@
                 updateControlsText();
                 updateLivesDisplay();
                 updateScoreDisplay();
+                
+                // Initialize sound manager
+                soundManager.init();
+                
                 inputsActive = true;
                 setupEventListeners();
                 for (let i = 0; i < 5; i++) renderer.render(scene, camera);
@@ -480,6 +539,9 @@
                     });
                     muteButton.textContent = '🔊';
                 }
+                
+                // Update sound effects mute state
+                soundManager.setMute(isMuted);
             }
 
             function updateControlsText() {
@@ -560,6 +622,10 @@
                 }
                 isJumping = true;
                 jumpProgress = 0;
+                
+                // Play jump sound
+                soundManager.playJump();
+                
                 const scaledJumpDuration = JUMP_DURATION / Math.sqrt(difficultyFactor);
                 const jumpStart = Date.now();
                 function jumpAnimation() {
@@ -597,6 +663,10 @@
                 duckAnimationPhase = 1;
                 duckProgress = 0;
                 duckHeight = animationState.duckStartScale;
+                
+                // Play duck sound
+                soundManager.playDuck();
+                
                 const scaledDifficulty = Math.min(difficultyFactor, score / MAX_DIFFICULTY_SCORE * 3 + 1);
                 const scaledDuckDuration = DUCK_DURATION / Math.sqrt(scaledDifficulty);
                 const duckStart = Date.now();
@@ -699,6 +769,10 @@
 
             function handleCollision() {
                 lives--;
+                
+                // Play collision sound
+                soundManager.playCollision();
+                
                 updateLivesDisplay();
                 if (lives <= 0) gameOver();
                 else {
@@ -1016,5 +1090,6 @@
             init();
         });
     </script>
+    <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
 </body>
 </html>
